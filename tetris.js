@@ -3,6 +3,26 @@ const context = canvas.getContext('2d');
 
 context.scale(20,20);
 
+
+function arenaSweep() {
+    let rowCount = 1;
+    outer: for( let y = arena.length - 1; y > 0; y--) {
+        for( let x = 0; x < arena[y].length; x++) {
+            if(arena[y][x] === 0) {
+                continue outer;
+            }
+        }
+        // code replaces a row of 1s with zeros and puts it on top.
+        const row = arena.splice(y, 1)[0].fill(0);
+        arena.unshift(row);
+        y++;
+
+        player.score += rowCount * 10;
+        rowCount *= 2;
+    }
+}
+
+
 function collide(arena, player) {
     const m = player.matrix;
     const o = player.pos;
@@ -130,6 +150,8 @@ function playerDrop() {
         player.pos.y--;
         merge(arena, player);
         playerReset();
+        arenaSweep();
+        updateScore();
     }
     dropCounter = 0;
 }
@@ -151,8 +173,16 @@ function playerReset() {
     player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length /2 | 0);
 
     if(collide(arena, player)) {
-        arena.forEach(row => row.fill(0));
+        resetGame();
     }
+}
+
+function resetGame() {
+    arena.forEach(row => row.fill(0));
+    player.score = 0;
+    player.level = 0;
+    dropInterval = 1000;
+    updateScore();
 }
 
 function playerRotate(dir) {
@@ -176,6 +206,8 @@ function playerRotate(dir) {
 
 let dropCounter = 0
 let dropInterval = 1000;
+let levelSize = 100;
+let levelSpeedIncrease = 100;
 
 let lastTime = 0;
 
@@ -191,6 +223,18 @@ function update(time = 0) {
     draw();
 
     requestAnimationFrame(update);
+}
+
+
+
+
+function updateScore() {
+    if(player.score - levelSize * player.level > levelSize) {
+        player.level++;
+        dropInterval -= levelSpeedIncrease;
+    }
+    document.getElementById('score').innerText = 'Score: ' + player.score;
+    document.getElementById('level').innerText = 'Level: ' + player.level;
 }
 
 document.addEventListener('keydown', event => {
@@ -223,12 +267,13 @@ const arena = createMatrix(12, 20);
 const player = {
     pos: {x: 5, y: 3},
     matrix: null,
+    score: 0,
+    level: 0,
 }; 
 
 
 playerReset();
-
-
+updateScore();
 
 
 update();
